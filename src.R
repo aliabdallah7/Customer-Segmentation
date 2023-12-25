@@ -1,98 +1,118 @@
-# The libraries used in this code
+# Load libraries
+library(cluster) 
+library(dbscan)
+library(factoextra)
+library(fpc)
+library(NbClust)
 library(plotrix)
 library(purrr)
-library(NbClust)
-library(factoextra)
-library(cluster) 
 library(tidyverse)
-library(fpc)
-library(dbscan)
 
-# Reading The Dataset
-dataset = read.csv("CustomerSegmentation.csv")
+# Read the dataset
+dataset <- read.csv("CustomerSegmentation.csv")
 
-# To check if there is any missing values in the dataset
+# Check for missing values
 any(is.na(dataset))
 
-# Showing some statistics about the dataset 
+# Remove rows with missing values
+dataset <- na.omit(dataset)
+
+# Remove rows with missing values
+dataset <- dataset[complete.cases(dataset), ]
+
+# Remove rows with negative values
+dataset <- dataset %>%
+  filter_all(all_vars(. >= 0))
+
+# Ensure there isn't negative values any more
+any(dataset < 0)
+
+# Display dataset information
 str(dataset)
-names(dataset)
+names(dataset)  # Column names
+
+# Rename the columns
+names(dataset) <- c("ID", "Gender", "Age", "Annual_Income", "Spending_Score")
 head(dataset)
 
+# Summary statistics and standard deviations
+summary_and_sd <- function(column) {
+  summary_col <- summary(column)
+  sd_col <- sd(column)
+  cat("Summary:", summary_col, "\n")
+  cat("Standard Deviation:", sd_col, "\n")
+}
+
 summary(dataset$Age)
-sd(dataset$Age)
-summary(dataset$Annual.Income..k..)
-sd(dataset$Annual.Income..k..)
-summary(dataset$Spending.Score..1.100.)
-sd(dataset$Spending.Score..1.100.)
+sd(dataset$Age) # Standard Deviation
+summary_and_sd(dataset$Annual_Income)
+summary_and_sd(dataset$Spending_Score)
 
 
-# Customer Gender Visualization
-a = table(dataset$Gender)
-barplot(a,main="Using BarPlot to display Gender Comparision",
-        ylab="Count",
-        xlab="Gender",
-        col=rainbow(2),
-        legend=rownames(a))
+# Function to create barplot and pie chart for gender
+visualize_gender <- function(gender_column) {
+  a <- table(gender_column)
+  barplot(a, main="BarPlot to display Gender Comparison", 
+          ylab="Count", xlab="Gender", col=rainbow(2), legend=rownames(a))
+  pct <- round(a/sum(a)*100)
+  lbs <- paste(c("Female","Male")," ", pct, "%")
+  pie3D(a, labels=lbs, main="Pie Chart Depicting Ratio of Female and Male")
+}
 
-pct = round(a/sum(a)*100)
-lbs = paste(c("Female","Male")," ",pct,"%",sep=" ")
-pie3D(a,labels=lbs, main="Pie Chart Depicting Ratio of Female and Male")
+# Visualize gender
+visualize_gender(dataset$Gender)
 
 
-# Analysis & Visualization of Age Distribution
-hist(dataset$Age,
-     col="blue",
-     main="Histogram to Show Count of Age Class",
-     xlab="Age Class",
-     ylab="Frequency",
-     labels=TRUE)
+# Function to create histogram and boxplot
+visualize_numeric <- function(column, color, title, xlab, ylab) {
+  hist(column, col=color, main=title, xlab=xlab, ylab=ylab, labels=TRUE)
+  boxplot(column, col=color, main=paste("Boxplot for Descriptive Analysis of", xlab))
+}
 
-boxplot(dataset$Age,
-        col="blue",
-        main="Boxplot for Descriptive Analysis of Age")
+# Visualize age distribution
+visualize_numeric(dataset$Age, "yellow", "Histogram and Boxplot for Age", "Age Class", "Frequency")
 
 
 # Analysis & Visualization of the Annual Income of the Customers
-boxplot(dataset$Annual.Income..k..,
+boxplot(dataset$Annual_Income,
         horizontal=TRUE,
-        col="blue",
+        col="pink",
         main="BoxPlot for Descriptive Analysis of Annual Income")
 
-hist(dataset$Annual.Income..k..,
-     col="blue",
+hist(dataset$Annual_Income,
+     col="red",
      main="Histogram for Annual Income",
      xlab="Annual Income Class",
      ylab="Frequency",
      labels=TRUE)
 
-plot(density(dataset$Annual.Income..k..),
+plot(density(dataset$Annual_Income),
      col="blue",
      main="Density Plot for Annual Income",
      xlab="Annual Income Class",
      ylab="Density")
-polygon(density(dataset$Annual.Income..k..),
+polygon(density(dataset$Annual_Income),
         col="blue")
 
 # Analysis & Visualization of Spending Score of the customer
-boxplot(dataset$Spending.Score..1.100.,
+boxplot(dataset$Spending_Score,
         horizontal=TRUE,
         col="blue",
         main="BoxPlot for Descriptive Analysis of Spending Score")
 
-hist(dataset$Spending.Score..1.100.,
+hist(dataset$Spending_Score,
      main="HistoGram for Spending Score",
      xlab="Spending Score Class",
      ylab="Frequency",
      col="blue",
      labels=TRUE)
 
-plot(density(dataset$Spending.Score..1.100.),
+plot(density(dataset$Spending_Score),
      col="blue",
      main="Density Plot for Spending Score",
      xlab="Spending Score Class",
      ylab="Density")
-polygon(density(dataset$Spending.Score..1.100.),
+polygon(density(dataset$Spending_Score),
         col="blue")
 
 
@@ -112,7 +132,7 @@ head(dataset)
 
 # Elbow method
 fviz_nbclust(dataset[,2:5], kmeans, method = "wss") +
-  geom_vline(xintercept = 8, linetype = 2)+
+  geom_vline(xintercept = 8, linetype = 2) +
   labs(subtitle = "Elbow method")
 
 # Silhouette Method
@@ -133,17 +153,6 @@ clusters <- k9$cluster
 bl <- as.character(clusters)
 
 # Create a plot of the customers segments
-set.seed(1)
-ggplot(dataset, aes(x = Annual.Income..k.., y = Spending.Score..1.100.)) + 
-  geom_point(stat = "identity", aes(color = as.factor(clusters))) +
-  scale_color_discrete(name=" ",
-                       breaks=c("1", "2", "3", "4", "5","6", "7", "8", "9"),
-                       labels=c("Cluster 1", "Cluster 2", "Cluster 3", "Cluster 4", "Cluster 5","Cluster 6","Cluster 7","Cluster 8","Cluster 9")) +
-  ggtitle("Segments of the customers", subtitle = "Using K-means Clustering")
-
-# Showing the 9 K-Means clusters
-clusplot(dataset[,2:5], clusters, color=TRUE, shade=TRUE, labels=0, lines=0)
-
 fviz_cluster(k9, dataset[,2:5], geom = c("point"),ellipse.type = "euclid")
 
 # function for colors
@@ -166,12 +175,16 @@ legend("bottomleft",unique(bl),fill = unique(kCols(clusters)))
 
 
 # Dbscan Mtoh
-
+# Estimate Epsilon (eps) with kNNdistplot
 eps_plot = kNNdistplot(dataset[,2:5], k = 3)
 eps_plot %>% abline(h = 0.58, lty = 2)
-set.seed(220)
-dbscan_clusters <- dbscan(dataset[,2:5],eps = 0.58 , minPts = 4)
+# DBSCAN Clustering
+set.seed(7)
+dbscan_clusters <- dbscan(dataset[,2:5],eps = 0.58 , MinPts = 4)
+# Display DBSCAN Cluster Results
 dbscan_clusters
+
+# Visualize DBSCAN Clusters
 fviz_cluster(dbscan_clusters, dataset[,2:5], geom = "point")
 
 
@@ -197,26 +210,17 @@ head(dd)
 fviz_cluster(
   pam.res,
   data = dataset[,2:5],
-  choose.vars = NULL,
   stand = TRUE,
   axes = c(1, 2),
-  geom = c("point", "text"),
-  repel = FALSE,
+  geom = "point",
   show.clust.cent = TRUE,
   ellipse = TRUE,
   ellipse.type = "euclid",
   ellipse.level = 0.95,
   ellipse.alpha = 0.2,
-  shape = NULL,
   pointsize = 1.5,
   labelsize = 12,
   main = "Cluster plot",
-  xlab = NULL,
-  ylab = NULL,
-  outlier.color = "black",
-  outlier.shape = 19,
-  outlier.pointsize = pointsize,
-  outlier.labelsize = labelsize,
   ggtheme = theme_grey()
 )
 
@@ -239,12 +243,11 @@ Hierar_cl <- hclust(distance_mat, method = "average")
 Hierar_cl
 
 # Plotting dendrogram
-plot(Hierar_cl,cex=0.6,hang=-1)
+plot(Hierar_cl)
 
 # Choosing no. of clusters
 # Cutting tree by height
-abline(h =2 , col = "green")
-
+abline(h =2 , col = "red")
 
 # Cutting tree by no. of clusters
 fit <- cutree(Hierar_cl, k = 10 )
@@ -252,20 +255,8 @@ fit
 table(fit)
 rect.hclust(Hierar_cl, k = 10, border = "green")
 
-# agglomeration methods to assess
-m <- c("average", "single", "complete")
-names(m) <- c("average", "single", "complete")
-
-# function to compute hierarchical
-# clustering coefficient
-ac <- function(x) {
-  agnes(dataset[,2:5], method = x)$ac
-}
-
-sapply(m, ac)
 # Hierarchical clustering
-hc2 <- agnes(dataset[,2:5], method = "complete")
+hc2 <- agnes(dataset[,2:5], method = "average")
 
 # Plot the obtained dendrogram
-pltree(hc2, cex = 0.6, hang = -1,
-       main = "Dendrogram of agnes")
+pltree(hc2, main = "Dendrogram of agnes")
