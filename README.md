@@ -16,7 +16,6 @@ This project, developed during the Statistical Inference course at FCIS, Ain Sha
   - [Hierarchical Clustering](#hierarchical-clustering)
 - [Results](#results)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Dataset
 
@@ -55,7 +54,3 @@ The project resulted in distinct customer segments identified through various cl
 ## Contributing
 
 Contributions are welcome! Fork the repository and create a pull request with your enhancements.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
